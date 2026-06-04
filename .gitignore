@@ -1,0 +1,26 @@
+# Python
+.venv/
+__pycache__/
+*.pyc
+.ipynb_checkpoints/
+
+# Data & artifacts (large / regenerable — never commit)
+data/raw/**
+data/normalized/**
+cache/**
+models/**
+external/**
+*.pt
+*.pth
+*.npy
+*.npz
+*.parquet
+
+# keep directory placeholders and small manifests
+!**/.gitkeep
+!manifests/*.csv
+# but not local backups
+manifests/*.bak.csv
+
+# OS
+.DS_Store

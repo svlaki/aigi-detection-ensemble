@@ -1,0 +1,25 @@
+# Core DL
+torch
+torchvision
+open_clip_torch
+transformers
+peft
+
+# Data / ML
+scikit-learn
+numpy
+scipy
+pandas
+pyarrow
+datasets
+huggingface_hub
+
+# Imaging
+pillow
+
+# Viz
+matplotlib
+seaborn
+
+# Utils
+tqdm
