@@ -1,0 +1,20 @@
+{
+  "best_member_eval": "M1_cal",
+  "best_member_eval_acc": 0.622042527702905,
+  "best_member_eval_auroc": 0.7532107082934447,
+  "combiner_logreg_eval": {
+    "auroc": 0.7326909524622847,
+    "acc": 0.6735549565738245,
+    "real_acc": 0.7288135593220338,
+    "fake_acc": 0.6194427978660344
+  },
+  "combiner_mlp_eval": {
+    "auroc": 0.7202754721693164,
+    "acc": 0.6714585205151243,
+    "real_acc": 0.7263922518159807,
+    "fake_acc": 0.6176644931831654
+  },
+  "mean_prob_eval_acc": 0.6442048517520216,
+  "majority_vote_eval_acc": 0.5938903863432166,
+  "combiner_logreg_indist_minus_ood_acc_gap": 0.14411171009284218
+}
