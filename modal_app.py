@@ -37,8 +37,33 @@ image = (
 vol = modal.Volume.from_name("cs231n-data")
 
 
-@app.function(image=image, gpu="A10G", volumes={"/data": vol}, timeout=3600)
-def run_m3(batch_size: int = 32, limit: int = 0) -> dict:
+CACHE_REMOTE = "/data/cache/m3_d3qe_logit.npz"
+
+
+def _load_remote_cache() -> dict:
+    import os
+    import numpy as np
+    if not os.path.exists(CACHE_REMOTE):
+        return {}
+    data = np.load(CACHE_REMOTE, allow_pickle=False)
+    return {str(i): float(data["logit"][k]) for k, i in enumerate(data["image_id"])}
+
+
+def _save_remote_cache(logits: dict) -> None:
+    import os
+    import numpy as np
+    os.makedirs("/data/cache", exist_ok=True)
+    ids = np.array(list(logits.keys()), dtype=np.str_)
+    lg = np.array([logits[i] for i in logits], dtype=np.float32)
+    np.savez(CACHE_REMOTE + ".tmp.npz", image_id=ids, logit=lg)
+    os.replace(CACHE_REMOTE + ".tmp.npz", CACHE_REMOTE)
+    vol.commit()
+
+
+@app.function(image=image, gpu="A10G", volumes={"/data": vol}, timeout=7200)
+def run_m3(batch_size: int = 64, limit: int = 0, checkpoint: int = 2000) -> dict:
+    """D3QE inference over the manifest. Resumable: reloads the volume cache and
+    skips already-done image_ids, checkpointing every `checkpoint` new images."""
     import os
     import sys
     import time
@@ -72,12 +97,16 @@ def run_m3(batch_size: int = 32, limit: int = 0) -> dict:
     df = pd.read_csv("/data/manifests/manifest.csv")
     if limit:
         df = df.head(limit)
-    ids = [str(x) for x in df["image_id"].tolist()]
-    paths = ["/data/" + p.removeprefix("data/") for p in df["path"].tolist()]
-    print(f"[m3-modal] images: {len(paths)} | batch={batch_size}")
+
+    logits = _load_remote_cache()
+    print(f"[m3-modal] resume: {len(logits)} already cached on volume")
+    todo = df[~df["image_id"].astype(str).isin(logits.keys())].reset_index(drop=True)
+    ids = [str(x) for x in todo["image_id"].tolist()]
+    paths = ["/data/" + p.removeprefix("data/") for p in todo["path"].tolist()]
+    print(f"[m3-modal] images: total={len(df)} pending={len(paths)} | batch={batch_size}")
 
     to_tensor = T.Compose([T.Resize((256, 256)), T.ToTensor()])  # [0,1], model normalizes internally
-    logits: dict[str, float] = {}
+    since_ckpt = 0
     t0 = time.time()
     for start in range(0, len(paths), batch_size):
         chunk = paths[start:start + batch_size]
@@ -87,19 +116,18 @@ def run_m3(batch_size: int = 32, limit: int = 0) -> dict:
             lg = model(batch).float().cpu().numpy().reshape(-1)
         for c, v in zip(cids, lg):
             logits[c] = float(v)
+        since_ckpt += len(chunk)
         n = start + len(chunk)
         rate = n / max(time.time() - t0, 1e-6)
         print(f"[m3-modal] {n}/{len(paths)} ({rate:.1f} img/s, "
               f"eta {(len(paths)-n)/max(rate,1e-6)/60:.1f}m)", flush=True)
+        if since_ckpt >= checkpoint:
+            _save_remote_cache(logits)
+            print(f"[m3-modal]   ✓ checkpoint to volume ({len(logits)} total)", flush=True)
+            since_ckpt = 0
 
-    # durable copy on the volume (in case the local save is interrupted)
-    os.makedirs("/data/cache", exist_ok=True)
-    out_ids = np.array(list(logits.keys()), dtype=np.str_)
-    out_lg = np.array([logits[i] for i in logits], dtype=np.float32)
-    np.savez("/data/cache/m3_d3qe_logit.npz", image_id=out_ids, logit=out_lg)
-    vol.commit()
-
-    arr = out_lg
+    _save_remote_cache(logits)
+    arr = np.array([logits[i] for i in logits], dtype=np.float32)
     print(f"[m3-modal] DONE — {len(logits)} logits in {(time.time()-t0)/60:.1f}m")
     print(f"[m3-modal] logit stats: min={arr.min():.3f} max={arr.max():.3f} "
           f"mean={arr.mean():.3f} std={arr.std():.3f} nan={bool(np.isnan(arr).any())}")
