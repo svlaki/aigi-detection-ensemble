@@ -1,0 +1,10 @@
+{
+  "member_train_n": 3000,
+  "val_n": 600,
+  "val_frac": 0.2,
+  "C": 1.0,
+  "accuracy": 0.925,
+  "auroc": 0.9736777777777778,
+  "acc_real": 0.94,
+  "acc_fake": 0.91
+}
