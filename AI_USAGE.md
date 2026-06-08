@@ -105,6 +105,62 @@ Python 3.13.1, isolated `.venv`.
 
 ---
 
+## 2026-06-07 — Phases 3–6 modeling + validation (members, combiner, LoRA)
+
+Worked phase-by-phase, stopping at each ✓ gate for the user's OK. Claude wrote all
+code; the user reviewed and directed.
+
+### Phase 3 — members + cached outputs
+- `src/embeddings.py` + `scripts/extract_clip_embeddings.py`: frozen CLIP
+  `ViT-L-14-quickgelu/openai` embeddings for ALL 12,339 images → resumable npz
+  cache (`cache/clip_*_emb.npz`). Ran on MPS, ~20 min, all 768-dim, no NaNs.
+- `scripts/train_m1a.py` — **M1a** = frozen CLIP + L2-norm + LogReg probe on
+  `member_train`. In-distribution held-out gate: **acc 0.977, AUROC 0.999** (≥0.90 ✓).
+- `src/spectral.py` + `scripts/extract_spectral_features.py` — **M2** = 2D-FFT
+  azimuthal radial power spectrum + HF energy ratios (69-d), cached. `train_m2.py`
+  gate: **acc 0.925** (≥0.75 ✓).
+- **M3 = D3QE on Modal A10G** (`modal_app.py::run_m3`): ~10 h on dev-box CPU, so ran
+  on GPU. Resumable, checkpoints to the `cs231n-data` volume. All 12,339 logits,
+  ~56 min ≈ $0.93. Eval AUROC 0.642 (collapses OOD, as expected for an AR-specialist).
+- `scripts/build_member_outputs.py` — refit M1a/M2 on FULL `member_train`; assembled
+  `cache/member_outputs.parquet` (p/logit per member per image). Gate ✓ (no NaN, aligned).
+
+### Phase 4 — decorrelation (Figure 2)
+- `scripts/decorrelation.py`: pairwise error-correlation on eval fakes ≈ **0.037**
+  (near-independent errors) + oracle coverage 0.992. `figures/fig2_decorrelation.png`.
+
+### Phase 5 — calibration + combiner + baselines (Figure 3)
+- `scripts/combiner.py`: per-member Platt calibration on Pool B, learned combiner
+  (LogReg + 2-layer MLP) on `[p1,p2,p3, calibrated logits, pairwise |Δp|]`, vs
+  mean-prob / majority baselines. **Combiner eval acc 0.674** (> best member 0.622,
+  > baselines); main win = class balance. `results/phase5_*`, `models/combiner_*`.
+
+### Phase 6 — LoRA ablation (HEADLINE, Figure 4) + fold
+- `modal_app.py::train_lora` (A10G): matched ablation — train Linear head on
+  `lora_train` with CLIP **frozen (M1a)** vs **LoRA (M1b)**; identical head/optim/seed.
+  LoRA config: **r=16, alpha=32, dropout=0.05, target_modules=[attn.out_proj,
+  mlp.c_fc, mlp.c_proj]** (QKV is fused nn.MultiheadAttention, not peft-targetable).
+  1.53% trainable. ~51 min ≈ $0.93. M1b ≥ M1a on AUROC across modern_test/cf/eval.
+- `scripts/phase6_report.py` → `figures/fig4_lora.png`, `results/phase6_summary.json`.
+- `scripts/combiner_with_m1b.py` — fold M1b into combiner: **eval acc +0.124,
+  eval_modern +0.195** (the central training-data-diversity result).
+
+### Validation (evidence numbers are real)
+- `scripts/negative_controls.py`: label-shuffle + random-feature controls collapse to
+  ~0.5 (combiner real 0.733 → shuffled 0.475) → no leakage/bug.
+- `scripts/benchmark_genimage_xgen.py`: our CLIP probe reproduces the GenImage
+  cross-generator regime (off-diagonal AUROC **0.845**, in the published CLIP-detector range).
+- `modal_app.py::validate_univfd`: **EXACT reproduction** — ran UnivFD's official
+  `fc_weights.pth` on their official diffusion test set (gdown, cached to volume);
+  per-domain AP matches the paper to **<1.1 pt** (mean 95.66 vs published 95.00).
+  Vendored their repo to `external/UniversalFakeDetect`.
+
+### Infra
+- Modal installed + pinned; authed to shared `cs-231n` workspace; uploaded normalized
+  images + manifest to the `cs231n-data` volume (mounts at `/data`).
+
+---
+
 ## External repos / checkpoints pulled in (track for citations)
 
 | Item | Source | Purpose | Notes |
@@ -116,3 +172,5 @@ Python 3.13.1, isolated `.venv`.
 | CLIP ViT-L-14.pt (OpenAI) | openaipublic.azureedge.net via clip.load | D3QE CLIP branch | 890MB, ~/.cache/clip |
 | GenImage subsets | https://huggingface.co/bitmind | Pool A/B data | per-generator |
 | Community Forensics | https://huggingface.co/OwensLab | Pool C data | pin revision when pulled |
+| UniversalFakeDetect | https://github.com/WisconsinAIVision/UniversalFakeDetect (Ojha+ CVPR'23) | Tier-2 exact reproduction | official fc_weights.pth in repo; diffusion test set via gdown |
+| Modal | https://modal.com | remote A10G for M3 + LoRA | shared `cs-231n` workspace, `cs231n-data` volume |

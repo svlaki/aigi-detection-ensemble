@@ -50,6 +50,15 @@ TODO: confirm label + generator columns; pin the revision hash in this file.
 | D3QE classifier `model_epoch_best.pth` | https://huggingface.co/Yanran21/D3QE | 92MB | external/D3QE/pretrained |
 | LlamaGen VQ-VAE `vq_ds16_c2i.pt` | https://huggingface.co/FoundationVision/LlamaGen | 288MB | external/D3QE/pretrained |
 | D3QE code (ICCV 2025) | https://github.com/Zhangyr2022/D3QE — arXiv:2510.05891 | — | external/D3QE |
+| UniversalFakeDetect (Ojha+ CVPR'23, arXiv:2302.10174) | https://github.com/WisconsinAIVision/UniversalFakeDetect | code + `pretrained_weights/fc_weights.pth` (official linear probe, 4 KB) | external/UniversalFakeDetect |
+| UnivFD diffusion test set | Google Drive id `1FXlGIRh_Ud3cScMgSVDbEWmPDmjcrm1t` (~0.92 GB; from UnivFD README) | Tier-2 exact reproduction | cached on Modal volume at `/data/univfd_diffusion` |
+
+## Remote compute (Modal)
+- Workspace: shared **`cs-231n`**; volume **`cs231n-data`** holds `/normalized/...`,
+  `/manifests/manifest.csv`, and caches written by jobs (`/data/cache/m3_d3qe_logit.npz`,
+  `/data/cache/m1b_logits.npz`, `/data/models/m1b_lora/`, `/data/univfd_diffusion/`).
+- Jobs in `modal_app.py`: `run_m3` (D3QE inference), `train_lora` (M1a/M1b ablation),
+  `validate_univfd` (exact reproduction). All A10G, serverless/per-second-billed.
 
 ## Environment gotcha
 python.org Python 3.13's `urllib` lacks a CA store → SSL verify fails on
