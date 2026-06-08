@@ -23,3 +23,6 @@ seaborn
 
 # Utils
 tqdm
+
+# Remote GPU (LoRA / training runs on rented A10G via Modal)
+modal
