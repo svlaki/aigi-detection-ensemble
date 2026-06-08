@@ -1,0 +1,82 @@
+{
+  "lora": {
+    "r": 16,
+    "alpha": 32,
+    "dropout": 0.05,
+    "epochs": 10,
+    "target_modules": [
+      "attn.out_proj",
+      "mlp.c_fc",
+      "mlp.c_proj"
+    ]
+  },
+  "sets": {
+    "modern_test": {
+      "M1a": {
+        "auroc": 0.9962613333333333,
+        "acc": 0.9693333333333334,
+        "real_acc": 0.9586666666666667,
+        "fake_acc": 0.98
+      },
+      "M1b": {
+        "auroc": 0.9999626666666667,
+        "acc": 0.9973333333333333,
+        "real_acc": 0.9986666666666667,
+        "fake_acc": 0.996
+      },
+      "delta": {
+        "auroc": 0.0037,
+        "acc": 0.028,
+        "real_acc": 0.04,
+        "fake_acc": 0.016
+      }
+    },
+    "cf": {
+      "M1a": {
+        "auroc": 0.7476697106158021,
+        "acc": 0.6606851549755302,
+        "real_acc": 0.5809312638580931,
+        "fake_acc": 0.7374599786552828
+      },
+      "M1b": {
+        "auroc": 0.7568749156978326,
+        "acc": 0.6905927134312126,
+        "real_acc": 0.7172949002217295,
+        "fake_acc": 0.6648879402347919
+      },
+      "delta": {
+        "auroc": 0.0092,
+        "acc": 0.0299,
+        "real_acc": 0.1364,
+        "fake_acc": -0.0726
+      }
+    },
+    "eval": {
+      "M1a": {
+        "auroc": 0.889025319671437,
+        "acc": 0.7993411200958371,
+        "real_acc": 0.7524213075060533,
+        "fake_acc": 0.8452874925903971
+      },
+      "M1b": {
+        "auroc": 0.9055987892027195,
+        "acc": 0.8283917340521114,
+        "real_acc": 0.8450363196125908,
+        "fake_acc": 0.8120924718435092
+      },
+      "delta": {
+        "auroc": 0.0166,
+        "acc": 0.0291,
+        "real_acc": 0.0926,
+        "fake_acc": -0.0332
+      }
+    }
+  },
+  "headline": {
+    "modern_test_acc_delta": 0.028,
+    "modern_test_auroc_delta": 0.0037,
+    "cf_acc_delta": 0.0299,
+    "cf_auroc_delta": 0.0092,
+    "reads": "LoRA helps in-generator (modern_test) and cross-generator (cf)"
+  }
+}

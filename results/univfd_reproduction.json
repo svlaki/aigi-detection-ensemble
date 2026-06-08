@@ -1,0 +1,100 @@
+{
+  "reproduction": {
+    "guided": {
+      "ap": 0.8827,
+      "acc": 0.7,
+      "n_real": 1000,
+      "n_fake": 1000
+    },
+    "ldm_200": {
+      "ap": 0.994,
+      "acc": 0.9455,
+      "n_real": 1000,
+      "n_fake": 1000
+    },
+    "ldm_200_cfg": {
+      "ap": 0.9322,
+      "acc": 0.7415,
+      "n_real": 1000,
+      "n_fake": 1000
+    },
+    "ldm_100": {
+      "ap": 0.9935,
+      "acc": 0.9515,
+      "n_real": 1000,
+      "n_fake": 1000
+    },
+    "glide_100_27": {
+      "ap": 0.9579,
+      "acc": 0.7865,
+      "n_real": 1000,
+      "n_fake": 1000
+    },
+    "glide_50_27": {
+      "ap": 0.9603,
+      "acc": 0.792,
+      "n_real": 1000,
+      "n_fake": 1000
+    },
+    "glide_100_10": {
+      "ap": 0.9548,
+      "acc": 0.7805,
+      "n_real": 1000,
+      "n_fake": 1000
+    },
+    "dalle": {
+      "ap": 0.9773,
+      "acc": 0.8745,
+      "n_real": 1000,
+      "n_fake": 1000
+    },
+    "_mean_ap": 0.9566
+  },
+  "comparison": {
+    "source": "Ojha et al. CVPR2023 (UnivFD), Table 2 Ours-LC CLIP ViT-L/14, AP in %",
+    "per_domain": {
+      "guided": {
+        "published_ap": 87.77,
+        "reproduced_ap": 88.27,
+        "delta": 0.5
+      },
+      "ldm_200": {
+        "published_ap": 99.14,
+        "reproduced_ap": 99.4,
+        "delta": 0.26
+      },
+      "ldm_200_cfg": {
+        "published_ap": 92.15,
+        "reproduced_ap": 93.22,
+        "delta": 1.07
+      },
+      "ldm_100": {
+        "published_ap": 99.17,
+        "reproduced_ap": 99.35,
+        "delta": 0.18
+      },
+      "glide_100_27": {
+        "published_ap": 94.74,
+        "reproduced_ap": 95.79,
+        "delta": 1.05
+      },
+      "glide_50_27": {
+        "published_ap": 95.34,
+        "reproduced_ap": 96.03,
+        "delta": 0.69
+      },
+      "glide_100_10": {
+        "published_ap": 94.57,
+        "reproduced_ap": 95.48,
+        "delta": 0.91
+      },
+      "dalle": {
+        "published_ap": 97.15,
+        "reproduced_ap": 97.73,
+        "delta": 0.58
+      }
+    },
+    "published_diffusion_mean_ap": 95.0,
+    "reproduced_diffusion_mean_ap": 95.66
+  }
+}

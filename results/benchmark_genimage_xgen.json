@@ -1,0 +1,14 @@
+{
+  "diagonal_in_generator_auroc_mean": 0.998,
+  "offdiagonal_cross_generator_auroc_mean": 0.845,
+  "overall_auroc_mean": 0.87,
+  "per_cell_n": 500,
+  "generators": [
+    "adm",
+    "biggan",
+    "glide",
+    "midjourney",
+    "wukong",
+    "vqdm"
+  ]
+}

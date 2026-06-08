@@ -1,0 +1,16 @@
+{
+  "A_combiner_label_perm": {
+    "real_auroc": 0.733,
+    "perm_auroc_mean": 0.475,
+    "perm_auroc_std": 0.133
+  },
+  "B_random_feature_combiner": {
+    "auroc": 0.49
+  },
+  "C_member_label_shuffle": {
+    "M1_real_auroc": 0.753,
+    "M1_shuffled_auroc_mean": 0.559,
+    "M2_real_auroc": 0.517,
+    "M2_shuffled_auroc_mean": 0.49
+  }
+}
