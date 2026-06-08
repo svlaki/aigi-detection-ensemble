@@ -160,11 +160,11 @@ def main():
 
 def build_sources() -> list[Source]:
     """Finalized from probe output — see scripts/probe_sources.py / notes/data_sources.md."""
-    FAKE_PER_GEN = 500          # GenImage fakes per generator (3 per pool -> 1500/pool)
-    REALS_PER_POOL = 1500       # ImageNet reals per pool (balances the 1500 fakes)
-    CF_PER_CLASS = config.CF_PER_CLASS          # 1250 each label
-    MOD_PER_GEN = config.MODERN_PER_GENERATOR   # 750 each modern generator
-    MOD_REALS_EACH = 1125       # FFHQ + COCO -> 2250 reals ~ balances 2250 modern fakes
+    FAKE_PER_GEN = 1000         # GenImage fakes per generator (3 per pool -> 3000/pool)
+    REALS_PER_POOL = 3000       # ImageNet reals per pool (balances the 3000 fakes)
+    CF_PER_CLASS = config.CF_PER_CLASS          # 2500 each label
+    MOD_PER_GEN = config.MODERN_PER_GENERATOR   # 1500 each modern generator
+    MOD_REALS_EACH = 2250       # FFHQ + COCO -> 4500 reals ~ balances 4500 modern fakes
 
     s: list[Source] = []
 

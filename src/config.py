@@ -51,8 +51,8 @@ SPLIT_LORA_TRAIN = "lora_train"       # modern slice, LoRA fine-tune ONLY (never
 
 # Modern-slice partition (image-disjoint, stratified by generator/source). Of each
 # modern fake generator's 750: this many go to lora_train, the rest to modern_test.
-LORA_TRAIN_FAKE_PER_GEN = 500         # -> 250 per generator held out as modern_test
-LORA_TRAIN_REAL_PER_SOURCE = 750      # of 1125 ffhq/coco each -> 375 held out as modern_test
+LORA_TRAIN_FAKE_PER_GEN = 1000        # -> 500 per generator held out as modern_test
+LORA_TRAIN_REAL_PER_SOURCE = 1500     # of 2250 ffhq/coco each -> 750 held out as modern_test
 
 # --------------------------------------------------------------------------- #
 # Reproducibility
@@ -134,9 +134,9 @@ def assert_no_pool_leakage() -> None:
 # --------------------------------------------------------------------------- #
 # Subsampling targets (keep TINY — 8GB RAM / 44GB disk on the dev box)
 # --------------------------------------------------------------------------- #
-GENIMAGE_PER_CLASS = 1500          # ~3k balanced total
-CF_PER_CLASS = 1250                # ~2.5k balanced total
-MODERN_PER_GENERATOR = 750         # 500–1000 per modern generator
+GENIMAGE_PER_CLASS = 3000          # ~6k balanced total
+CF_PER_CLASS = 2500                # ~5k balanced total
+MODERN_PER_GENERATOR = 1500        # ~1500 per modern generator
 
 
 def ensure_dirs() -> None:

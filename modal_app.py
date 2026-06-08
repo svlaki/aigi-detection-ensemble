@@ -23,16 +23,21 @@ import modal
 
 app = modal.App("cs231n-m3-d3qe")
 
-image = (
-    modal.Image.debian_slim(python_version="3.11")
-    .pip_install(
-        "torch", "torchvision", "numpy", "pandas", "pillow",
-        "ftfy", "regex", "tqdm", "setuptools", "certifi",
-    )
-    # ship D3QE code + pretrained weights (vq_ds16_c2i.pt 275MB, model_epoch_best 88MB)
-    .add_local_dir("external/D3QE/networks", "/d3qe/networks", copy=True)
-    .add_local_dir("external/D3QE/pretrained", "/d3qe/pretrained", copy=True)
+import os as _os
+
+_d3qe_base = _os.path.join(_os.path.dirname(__file__), "external", "D3QE")
+_d3qe_available = (_os.path.isdir(_os.path.join(_d3qe_base, "networks"))
+                   and _os.path.isdir(_os.path.join(_d3qe_base, "pretrained")))
+
+_d3qe_image = modal.Image.debian_slim(python_version="3.11").pip_install(
+    "torch", "torchvision", "numpy", "pandas", "pillow",
+    "ftfy", "regex", "tqdm", "setuptools", "certifi",
 )
+if _d3qe_available:
+    _d3qe_image = (_d3qe_image
+                   .add_local_dir("external/D3QE/networks", "/d3qe/networks", copy=True)
+                   .add_local_dir("external/D3QE/pretrained", "/d3qe/pretrained", copy=True))
+image = _d3qe_image
 
 vol = modal.Volume.from_name("cs231n-data")
 
@@ -364,6 +369,97 @@ def lora_main(epochs: int = 10, batch_size: int = 32, limit: int = 0):
              image_id=np.array(list(lg.keys()), dtype=np.str_),
              logit=np.array([lg[i] for i in lg], dtype=np.float32))
     print(f"[lora-local] saved phase6_metrics.json + m1b_logits.npz ({len(lg)} ids)")
+
+
+@app.local_entrypoint()
+def lora_sweep(limit: int = 0, batch_size: int = 32):
+    """Sweep rank ∈ {4,8,16,32} × epochs ∈ {5,10}, alpha=2×rank.
+    Skips r=16/e=10 (already in phase6_metrics.json). Runs 7 configs in parallel.
+
+    Usage: ./.venv/bin/modal run modal_app.py::lora_sweep
+    """
+    import csv
+    import json
+    from pathlib import Path
+
+    root = Path(__file__).resolve().parent
+
+    # build grid, skip r=16/e=10
+    configs = []
+    for r in (4, 8, 16, 32):
+        for epochs in (5, 10):
+            if r == 16 and epochs == 10:
+                continue
+            configs.append((r, 2 * r, epochs))
+
+    print(f"[sweep] launching {len(configs)} configs in parallel (skip r=16/e=10)")
+    for r, alpha, epochs in configs:
+        print(f"  r={r} alpha={alpha} epochs={epochs}")
+
+    # starmap: each tuple -> (epochs, batch_size, infer_batch, r, alpha, dropout, limit)
+    args = [(epochs, batch_size, 128, r, alpha, 0.05, limit) for r, alpha, epochs in configs]
+    results_list = list(train_lora.starmap(args))
+
+    # fold in existing r=16/e=10 result
+    existing = root / "results" / "phase6_metrics.json"
+    if existing.exists():
+        meta = json.loads(existing.read_text())
+        results_list.append({
+            "results": meta["results"],
+            "meta": meta,
+            "m1b_logits": {},
+        })
+        print("[sweep] folded in existing r=16/e=10 from phase6_metrics.json")
+
+    # normalize: extract config + results from each entry
+    sweep_results = []
+    for i, entry in enumerate(results_list):
+        if "meta" in entry and entry["meta"]:
+            m = entry["meta"]
+            cfg = {"r": m["r"], "alpha": m["alpha"], "epochs": m["epochs"],
+                   "dropout": m["dropout"]}
+        else:
+            r, alpha, epochs = configs[i]
+            cfg = {"r": r, "alpha": alpha, "epochs": epochs, "dropout": 0.05}
+        sweep_results.append({"config": cfg, "results": entry["results"]})
+
+    # save full JSON
+    (root / "results").mkdir(exist_ok=True)
+    sweep_path = root / "results" / "lora_sweep.json"
+    with open(sweep_path, "w") as f:
+        json.dump(sweep_results, f, indent=2)
+    print(f"[sweep] saved {sweep_path}")
+
+    # flatten to CSV
+    rows = []
+    for entry in sweep_results:
+        cfg = entry["config"]
+        for key, metrics in entry["results"].items():
+            model_name, split_name = key.split("/")
+            rows.append({
+                "r": cfg["r"], "alpha": cfg["alpha"], "epochs": cfg["epochs"],
+                "model": model_name, "split": split_name, **metrics,
+            })
+    csv_path = root / "results" / "lora_sweep.csv"
+    with open(csv_path, "w", newline="") as f:
+        w = csv.DictWriter(f, fieldnames=rows[0].keys())
+        w.writeheader()
+        w.writerows(rows)
+    print(f"[sweep] saved {csv_path}")
+
+    # summary table
+    print(f"\n{'r':>4s} {'alpha':>5s} {'ep':>3s} | "
+          f"{'mt_acc':>7s} {'mt_d':>7s} | {'cf_acc':>7s} {'cf_d':>7s} | "
+          f"{'ev_acc':>8s} {'ev_d':>7s}")
+    print("-" * 75)
+    for entry in sorted(sweep_results, key=lambda e: (e["config"]["r"], e["config"]["epochs"])):
+        cfg, R = entry["config"], entry["results"]
+        mt_a, mt_b = R["M1a/modern_test"]["acc"], R["M1b/modern_test"]["acc"]
+        cf_a, cf_b = R["M1a/cf"]["acc"], R["M1b/cf"]["acc"]
+        ev_a, ev_b = R["M1a/eval"]["acc"], R["M1b/eval"]["acc"]
+        print(f"{cfg['r']:4d} {cfg['alpha']:5d} {cfg['epochs']:3d} | "
+              f"{mt_b:7.3f} {mt_b-mt_a:+7.3f} | {cf_b:7.3f} {cf_b-cf_a:+7.3f} | "
+              f"{ev_b:8.3f} {ev_b-ev_a:+7.3f}")
 
 
 # ===========================================================================
