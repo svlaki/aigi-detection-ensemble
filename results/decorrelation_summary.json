@@ -1,0 +1,15 @@
+{
+  "eval_n": 3339,
+  "eval_fakes_n": 1687,
+  "member_acc": {
+    "M1": 0.5429769392033543,
+    "M2": 0.5010482180293501,
+    "M3": 0.573225516621743
+  },
+  "best_member": "M3",
+  "best_member_acc": 0.573225516621743,
+  "oracle_any_correct": 0.9916142557651991,
+  "baseline_majority_vote": 0.5720275531596286,
+  "baseline_mean_prob": 0.5843066786463013,
+  "mean_err_corr_evalfakes": 0.0368707550182469
+}
