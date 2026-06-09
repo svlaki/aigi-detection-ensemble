@@ -350,12 +350,14 @@ def train_lora(epochs: int = 10, batch_size: int = 32, infer_batch: int = 128,
 
 
 @app.local_entrypoint()
-def lora_main(epochs: int = 10, batch_size: int = 32, limit: int = 0):
+def lora_main(epochs: int = 10, batch_size: int = 32, limit: int = 0,
+              r: int = 16, alpha: int = 32):
     import json
     import sys
     from pathlib import Path
 
-    out = train_lora.remote(epochs=epochs, batch_size=batch_size, limit=limit)
+    out = train_lora.remote(epochs=epochs, batch_size=batch_size, limit=limit,
+                            r=r, alpha=alpha)
 
     root = Path(__file__).resolve().parent
     sys.path.insert(0, str(root))
