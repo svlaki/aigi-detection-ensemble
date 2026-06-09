@@ -1,10 +1,10 @@
 {
   "eval": {
-    "auroc_delta": 0.1053,
-    "acc_delta": 0.124
+    "auroc_delta": 0.0542,
+    "acc_delta": 0.0443
   },
   "eval_modern": {
-    "auroc_delta": 0.1798,
-    "acc_delta": 0.1947
+    "auroc_delta": 0.0723,
+    "acc_delta": 0.0553
   }
 }

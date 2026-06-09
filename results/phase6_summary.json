@@ -1,9 +1,9 @@
 {
   "lora": {
-    "r": 16,
-    "alpha": 32,
+    "r": 32,
+    "alpha": 64,
     "dropout": 0.05,
-    "epochs": 10,
+    "epochs": 5,
     "target_modules": [
       "attn.out_proj",
       "mlp.c_fc",
@@ -13,70 +13,70 @@
   "sets": {
     "modern_test": {
       "M1a": {
-        "auroc": 0.9962613333333333,
-        "acc": 0.9693333333333334,
-        "real_acc": 0.9586666666666667,
+        "auroc": 0.9954737777777778,
+        "acc": 0.966,
+        "real_acc": 0.952,
         "fake_acc": 0.98
       },
       "M1b": {
-        "auroc": 0.9999626666666667,
-        "acc": 0.9973333333333333,
-        "real_acc": 0.9986666666666667,
-        "fake_acc": 0.996
+        "auroc": 0.99992,
+        "acc": 0.9893333333333333,
+        "real_acc": 0.98,
+        "fake_acc": 0.9986666666666667
       },
       "delta": {
-        "auroc": 0.0037,
-        "acc": 0.028,
-        "real_acc": 0.04,
-        "fake_acc": 0.016
+        "auroc": 0.0044,
+        "acc": 0.0233,
+        "real_acc": 0.028,
+        "fake_acc": 0.0187
       }
     },
     "cf": {
       "M1a": {
-        "auroc": 0.7476697106158021,
-        "acc": 0.6606851549755302,
-        "real_acc": 0.5809312638580931,
-        "fake_acc": 0.7374599786552828
+        "auroc": 0.7438160662774767,
+        "acc": 0.6536160957041871,
+        "real_acc": 0.5565410199556541,
+        "fake_acc": 0.7470651013874067
       },
       "M1b": {
-        "auroc": 0.7568749156978326,
-        "acc": 0.6905927134312126,
-        "real_acc": 0.7172949002217295,
-        "fake_acc": 0.6648879402347919
+        "auroc": 0.7671869934475032,
+        "acc": 0.6655791190864601,
+        "real_acc": 0.5720620842572062,
+        "fake_acc": 0.7556029882604055
       },
       "delta": {
-        "auroc": 0.0092,
-        "acc": 0.0299,
-        "real_acc": 0.1364,
-        "fake_acc": -0.0726
+        "auroc": 0.0234,
+        "acc": 0.012,
+        "real_acc": 0.0155,
+        "fake_acc": 0.0085
       }
     },
     "eval": {
       "M1a": {
-        "auroc": 0.889025319671437,
-        "acc": 0.7993411200958371,
-        "real_acc": 0.7524213075060533,
-        "fake_acc": 0.8452874925903971
+        "auroc": 0.8859771561764871,
+        "acc": 0.7939502845163222,
+        "real_acc": 0.7360774818401937,
+        "fake_acc": 0.8506224066390041
       },
       "M1b": {
-        "auroc": 0.9055987892027195,
-        "acc": 0.8283917340521114,
-        "real_acc": 0.8450363196125908,
-        "fake_acc": 0.8120924718435092
+        "auroc": 0.9071139004867015,
+        "acc": 0.8110212638514526,
+        "real_acc": 0.7572639225181598,
+        "fake_acc": 0.8636633076467102
       },
       "delta": {
-        "auroc": 0.0166,
-        "acc": 0.0291,
-        "real_acc": 0.0926,
-        "fake_acc": -0.0332
+        "auroc": 0.0211,
+        "acc": 0.0171,
+        "real_acc": 0.0212,
+        "fake_acc": 0.013
       }
     }
   },
   "headline": {
-    "modern_test_acc_delta": 0.028,
-    "modern_test_auroc_delta": 0.0037,
-    "cf_acc_delta": 0.0299,
-    "cf_auroc_delta": 0.0092,
+    "modern_test_acc_delta": 0.0233,
+    "modern_test_auroc_delta": 0.0044,
+    "cf_acc_delta": 0.012,
+    "cf_auroc_delta": 0.0234,
     "reads": "LoRA helps in-generator (modern_test) and cross-generator (cf)"
   }
 }
