@@ -1,6 +1,9 @@
 import type { HealthResponse, PredictionResponse } from "./types";
 
-const BASE_URL = process.env.NEXT_PUBLIC_API_URL ?? "";
+// In dev: empty string → uses Next.js proxy (/api/predict → localhost:8000/predict)
+// In prod: set NEXT_PUBLIC_API_URL to the Modal endpoint URL (e.g. https://xxx.modal.run)
+const API_URL = process.env.NEXT_PUBLIC_API_URL;
+const PREFIX = API_URL ? API_URL : "/api";
 
 export async function predict(
   file: File,
@@ -10,7 +13,7 @@ export async function predict(
   const form = new FormData();
   form.append("file", file);
 
-  const res = await fetch(`${BASE_URL}/api/predict?mode=${mode}`, {
+  const res = await fetch(`${PREFIX}/predict?mode=${mode}`, {
     method: "POST",
     body: form,
     signal,
@@ -25,7 +28,7 @@ export async function predict(
 }
 
 export async function fetchHealth(): Promise<HealthResponse> {
-  const res = await fetch(`${BASE_URL}/api/health`);
+  const res = await fetch(`${PREFIX}/health`);
   if (!res.ok) {
     throw new Error("Server unavailable");
   }

@@ -13,7 +13,11 @@ from src.config import (
 
 MAX_UPLOAD_BYTES = 10 * 1024 * 1024  # 10 MB
 ALLOWED_EXTENSIONS = frozenset({".jpg", ".jpeg", ".png", ".webp", ".bmp"})
-FRONTEND_ORIGINS = ["http://localhost:3000"]
+_extra_origins = os.environ.get("CORS_ORIGINS", "")
+FRONTEND_ORIGINS = [
+    "http://localhost:3000",
+    *([o.strip() for o in _extra_origins.split(",") if o.strip()] if _extra_origins else []),
+]
 REQUIRED_MODELS = [
     MODELS_DIR / "m1a_clip_linear.joblib",
     MODELS_DIR / "m2_spectral.joblib",
