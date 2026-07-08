@@ -24,3 +24,5 @@ manifests/*.bak.csv
 
 # OS
 .DS_Store
+
+README.md
