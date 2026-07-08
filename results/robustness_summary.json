@@ -1,0 +1,507 @@
+{
+  "perturbations_tested": [
+    "clean",
+    "jpeg_q90",
+    "jpeg_q75",
+    "jpeg_q50",
+    "jpeg_q30",
+    "blur_s05",
+    "blur_s10",
+    "blur_s20",
+    "blur_s30",
+    "noise_s2",
+    "noise_s5",
+    "noise_s10",
+    "noise_s20",
+    "resize_128",
+    "social_media"
+  ],
+  "M1_cal": {
+    "clean_auroc": 0.7574,
+    "per_perturbation": {
+      "jpeg_q90": {
+        "auroc": 0.6396,
+        "auroc_delta": -0.1178
+      },
+      "jpeg_q75": {
+        "auroc": 0.637,
+        "auroc_delta": -0.1203
+      },
+      "jpeg_q50": {
+        "auroc": 0.6391,
+        "auroc_delta": -0.1182
+      },
+      "jpeg_q30": {
+        "auroc": 0.6257,
+        "auroc_delta": -0.1317
+      },
+      "blur_s05": {
+        "auroc": 0.7564,
+        "auroc_delta": -0.001
+      },
+      "blur_s10": {
+        "auroc": 0.7495,
+        "auroc_delta": -0.0079
+      },
+      "blur_s20": {
+        "auroc": 0.6563,
+        "auroc_delta": -0.1011
+      },
+      "blur_s30": {
+        "auroc": 0.6227,
+        "auroc_delta": -0.1347
+      },
+      "noise_s2": {
+        "auroc": 0.6916,
+        "auroc_delta": -0.0658
+      },
+      "noise_s5": {
+        "auroc": 0.6201,
+        "auroc_delta": -0.1373
+      },
+      "noise_s10": {
+        "auroc": 0.687,
+        "auroc_delta": -0.0704
+      },
+      "noise_s20": {
+        "auroc": 0.6616,
+        "auroc_delta": -0.0958
+      },
+      "resize_128": {
+        "auroc": 0.7375,
+        "auroc_delta": -0.0199
+      },
+      "social_media": {
+        "auroc": 0.6194,
+        "auroc_delta": -0.138
+      }
+    }
+  },
+  "M2_cal": {
+    "clean_auroc": 0.4877,
+    "per_perturbation": {
+      "jpeg_q90": {
+        "auroc": 0.4926,
+        "auroc_delta": 0.0049
+      },
+      "jpeg_q75": {
+        "auroc": 0.4983,
+        "auroc_delta": 0.0106
+      },
+      "jpeg_q50": {
+        "auroc": 0.4939,
+        "auroc_delta": 0.0063
+      },
+      "jpeg_q30": {
+        "auroc": 0.4679,
+        "auroc_delta": -0.0198
+      },
+      "blur_s05": {
+        "auroc": 0.5785,
+        "auroc_delta": 0.0908
+      },
+      "blur_s10": {
+        "auroc": 0.6152,
+        "auroc_delta": 0.1275
+      },
+      "blur_s20": {
+        "auroc": 0.511,
+        "auroc_delta": 0.0234
+      },
+      "blur_s30": {
+        "auroc": 0.4387,
+        "auroc_delta": -0.0489
+      },
+      "noise_s2": {
+        "auroc": 0.4829,
+        "auroc_delta": -0.0048
+      },
+      "noise_s5": {
+        "auroc": 0.5893,
+        "auroc_delta": 0.1016
+      },
+      "noise_s10": {
+        "auroc": 0.5954,
+        "auroc_delta": 0.1078
+      },
+      "noise_s20": {
+        "auroc": 0.5254,
+        "auroc_delta": 0.0377
+      },
+      "resize_128": {
+        "auroc": 0.6229,
+        "auroc_delta": 0.1352
+      },
+      "social_media": {
+        "auroc": 0.62,
+        "auroc_delta": 0.1324
+      }
+    }
+  },
+  "m12_mean": {
+    "clean_auroc": 0.74,
+    "per_perturbation": {
+      "jpeg_q90": {
+        "auroc": 0.6301,
+        "auroc_delta": -0.1099
+      },
+      "jpeg_q75": {
+        "auroc": 0.626,
+        "auroc_delta": -0.114
+      },
+      "jpeg_q50": {
+        "auroc": 0.6274,
+        "auroc_delta": -0.1125
+      },
+      "jpeg_q30": {
+        "auroc": 0.6068,
+        "auroc_delta": -0.1331
+      },
+      "blur_s05": {
+        "auroc": 0.7611,
+        "auroc_delta": 0.0211
+      },
+      "blur_s10": {
+        "auroc": 0.7684,
+        "auroc_delta": 0.0285
+      },
+      "blur_s20": {
+        "auroc": 0.6464,
+        "auroc_delta": -0.0936
+      },
+      "blur_s30": {
+        "auroc": 0.605,
+        "auroc_delta": -0.135
+      },
+      "noise_s2": {
+        "auroc": 0.6785,
+        "auroc_delta": -0.0615
+      },
+      "noise_s5": {
+        "auroc": 0.6286,
+        "auroc_delta": -0.1114
+      },
+      "noise_s10": {
+        "auroc": 0.6957,
+        "auroc_delta": -0.0443
+      },
+      "noise_s20": {
+        "auroc": 0.6653,
+        "auroc_delta": -0.0747
+      },
+      "resize_128": {
+        "auroc": 0.7565,
+        "auroc_delta": 0.0165
+      },
+      "social_media": {
+        "auroc": 0.6348,
+        "auroc_delta": -0.1052
+      }
+    }
+  },
+  "M3_cal": {
+    "clean_auroc": 0.6421,
+    "per_perturbation": {
+      "jpeg_q90": {
+        "auroc": 0.6503,
+        "auroc_delta": 0.0082
+      },
+      "jpeg_q75": {
+        "auroc": 0.6409,
+        "auroc_delta": -0.0012
+      },
+      "jpeg_q50": {
+        "auroc": 0.6599,
+        "auroc_delta": 0.0178
+      },
+      "jpeg_q30": {
+        "auroc": 0.6382,
+        "auroc_delta": -0.0039
+      },
+      "blur_s05": {
+        "auroc": 0.671,
+        "auroc_delta": 0.0289
+      },
+      "blur_s10": {
+        "auroc": 0.6938,
+        "auroc_delta": 0.0517
+      },
+      "blur_s20": {
+        "auroc": 0.6646,
+        "auroc_delta": 0.0225
+      },
+      "blur_s30": {
+        "auroc": 0.631,
+        "auroc_delta": -0.0111
+      },
+      "noise_s2": {
+        "auroc": 0.6459,
+        "auroc_delta": 0.0038
+      },
+      "noise_s5": {
+        "auroc": 0.6172,
+        "auroc_delta": -0.0249
+      },
+      "noise_s10": {
+        "auroc": 0.6134,
+        "auroc_delta": -0.0287
+      },
+      "noise_s20": {
+        "auroc": 0.5894,
+        "auroc_delta": -0.0527
+      },
+      "resize_128": {
+        "auroc": 0.6285,
+        "auroc_delta": -0.0136
+      },
+      "social_media": {
+        "auroc": 0.6322,
+        "auroc_delta": -0.0099
+      }
+    }
+  },
+  "mean_prob": {
+    "clean_auroc": 0.738,
+    "per_perturbation": {
+      "jpeg_q90": {
+        "auroc": 0.6876,
+        "auroc_delta": -0.0503
+      },
+      "jpeg_q75": {
+        "auroc": 0.6714,
+        "auroc_delta": -0.0666
+      },
+      "jpeg_q50": {
+        "auroc": 0.68,
+        "auroc_delta": -0.058
+      },
+      "jpeg_q30": {
+        "auroc": 0.6535,
+        "auroc_delta": -0.0845
+      },
+      "blur_s05": {
+        "auroc": 0.764,
+        "auroc_delta": 0.026
+      },
+      "blur_s10": {
+        "auroc": 0.7599,
+        "auroc_delta": 0.0219
+      },
+      "blur_s20": {
+        "auroc": 0.6906,
+        "auroc_delta": -0.0474
+      },
+      "blur_s30": {
+        "auroc": 0.6469,
+        "auroc_delta": -0.0911
+      },
+      "noise_s2": {
+        "auroc": 0.7016,
+        "auroc_delta": -0.0364
+      },
+      "noise_s5": {
+        "auroc": 0.6655,
+        "auroc_delta": -0.0725
+      },
+      "noise_s10": {
+        "auroc": 0.6973,
+        "auroc_delta": -0.0407
+      },
+      "noise_s20": {
+        "auroc": 0.6654,
+        "auroc_delta": -0.0726
+      },
+      "resize_128": {
+        "auroc": 0.7136,
+        "auroc_delta": -0.0244
+      },
+      "social_media": {
+        "auroc": 0.6718,
+        "auroc_delta": -0.0662
+      }
+    }
+  },
+  "majority_vote": {
+    "clean_auroc": 0.6468,
+    "per_perturbation": {
+      "jpeg_q90": {
+        "auroc": 0.6303,
+        "auroc_delta": -0.0165
+      },
+      "jpeg_q75": {
+        "auroc": 0.6094,
+        "auroc_delta": -0.0374
+      },
+      "jpeg_q50": {
+        "auroc": 0.6189,
+        "auroc_delta": -0.0279
+      },
+      "jpeg_q30": {
+        "auroc": 0.5935,
+        "auroc_delta": -0.0533
+      },
+      "blur_s05": {
+        "auroc": 0.7018,
+        "auroc_delta": 0.055
+      },
+      "blur_s10": {
+        "auroc": 0.6745,
+        "auroc_delta": 0.0277
+      },
+      "blur_s20": {
+        "auroc": 0.6282,
+        "auroc_delta": -0.0186
+      },
+      "blur_s30": {
+        "auroc": 0.5738,
+        "auroc_delta": -0.073
+      },
+      "noise_s2": {
+        "auroc": 0.6327,
+        "auroc_delta": -0.0141
+      },
+      "noise_s5": {
+        "auroc": 0.6215,
+        "auroc_delta": -0.0253
+      },
+      "noise_s10": {
+        "auroc": 0.6564,
+        "auroc_delta": 0.0096
+      },
+      "noise_s20": {
+        "auroc": 0.6115,
+        "auroc_delta": -0.0353
+      },
+      "resize_128": {
+        "auroc": 0.6227,
+        "auroc_delta": -0.0241
+      },
+      "social_media": {
+        "auroc": 0.6115,
+        "auroc_delta": -0.0353
+      }
+    }
+  },
+  "combiner_logreg": {
+    "clean_auroc": 0.7238,
+    "per_perturbation": {
+      "jpeg_q90": {
+        "auroc": 0.6565,
+        "auroc_delta": -0.0673
+      },
+      "jpeg_q75": {
+        "auroc": 0.6452,
+        "auroc_delta": -0.0785
+      },
+      "jpeg_q50": {
+        "auroc": 0.6534,
+        "auroc_delta": -0.0703
+      },
+      "jpeg_q30": {
+        "auroc": 0.627,
+        "auroc_delta": -0.0967
+      },
+      "blur_s05": {
+        "auroc": 0.7506,
+        "auroc_delta": 0.0268
+      },
+      "blur_s10": {
+        "auroc": 0.7675,
+        "auroc_delta": 0.0438
+      },
+      "blur_s20": {
+        "auroc": 0.6937,
+        "auroc_delta": -0.03
+      },
+      "blur_s30": {
+        "auroc": 0.6493,
+        "auroc_delta": -0.0745
+      },
+      "noise_s2": {
+        "auroc": 0.6764,
+        "auroc_delta": -0.0473
+      },
+      "noise_s5": {
+        "auroc": 0.6347,
+        "auroc_delta": -0.089
+      },
+      "noise_s10": {
+        "auroc": 0.6624,
+        "auroc_delta": -0.0614
+      },
+      "noise_s20": {
+        "auroc": 0.6409,
+        "auroc_delta": -0.0829
+      },
+      "resize_128": {
+        "auroc": 0.7389,
+        "auroc_delta": 0.0151
+      },
+      "social_media": {
+        "auroc": 0.6596,
+        "auroc_delta": -0.0642
+      }
+    }
+  },
+  "combiner_mlp": {
+    "clean_auroc": 0.7203,
+    "per_perturbation": {
+      "jpeg_q90": {
+        "auroc": 0.6575,
+        "auroc_delta": -0.0628
+      },
+      "jpeg_q75": {
+        "auroc": 0.6446,
+        "auroc_delta": -0.0757
+      },
+      "jpeg_q50": {
+        "auroc": 0.657,
+        "auroc_delta": -0.0632
+      },
+      "jpeg_q30": {
+        "auroc": 0.633,
+        "auroc_delta": -0.0872
+      },
+      "blur_s05": {
+        "auroc": 0.7411,
+        "auroc_delta": 0.0208
+      },
+      "blur_s10": {
+        "auroc": 0.7596,
+        "auroc_delta": 0.0393
+      },
+      "blur_s20": {
+        "auroc": 0.6875,
+        "auroc_delta": -0.0327
+      },
+      "blur_s30": {
+        "auroc": 0.6371,
+        "auroc_delta": -0.0831
+      },
+      "noise_s2": {
+        "auroc": 0.6768,
+        "auroc_delta": -0.0435
+      },
+      "noise_s5": {
+        "auroc": 0.6375,
+        "auroc_delta": -0.0828
+      },
+      "noise_s10": {
+        "auroc": 0.6582,
+        "auroc_delta": -0.0621
+      },
+      "noise_s20": {
+        "auroc": 0.6309,
+        "auroc_delta": -0.0893
+      },
+      "resize_128": {
+        "auroc": 0.7186,
+        "auroc_delta": -0.0016
+      },
+      "social_media": {
+        "auroc": 0.6667,
+        "auroc_delta": -0.0536
+      }
+    }
+  }
+}

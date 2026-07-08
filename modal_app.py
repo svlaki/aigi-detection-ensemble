@@ -727,5 +727,375 @@ def clip_main(batch_size: int = 128, limit: int = 0):
     print(f"[clip-local] saved {len(result)} embeddings -> {out_path}")
 
 
+# ===========================================================================
+# Phase 2 — Robustness: D3QE inference on perturbed eval images
+# ===========================================================================
+
+ROBUSTNESS_TAGS = [
+    "jpeg_q90", "jpeg_q75", "jpeg_q50", "jpeg_q30",
+    "blur_s05", "blur_s10", "blur_s20", "blur_s30",
+    "noise_s2", "noise_s5", "noise_s10", "noise_s20",
+    "resize_128",
+    "social_media",
+]
+
+# M1+M2 robustness image: CLIP + spectral (needs open_clip, scikit-learn, joblib, scipy)
+m12_rob_image = (
+    modal.Image.debian_slim(python_version="3.11")
+    .pip_install(
+        "torch", "torchvision", "open_clip_torch", "scikit-learn", "joblib",
+        "scipy", "numpy", "pandas", "pillow", "ftfy", "regex", "certifi",
+        "setuptools", "pyarrow",
+    )
+    .add_local_dir("src", "/app/src", copy=True)
+    .add_local_dir("models", "/app/models", copy=True)
+)
+
+
+@app.function(image=m12_rob_image, gpu="A10G", volumes={"/data": vol}, timeout=7200)
+def run_m12_robustness(tags: list[str], batch_size: int = 64) -> dict[str, bool]:
+    """M1 (CLIP) + M2 (spectral FFT) robustness eval on perturbed eval images.
+    Applies perturbations in-container, re-extracts features, scores with frozen
+    probes, saves per-tag parquets to /data/cache/robustness/m12_<tag>.parquet."""
+    import io
+    import os
+    import sys
+    import time
+
+    import certifi
+    os.environ.setdefault("SSL_CERT_FILE", certifi.where())
+
+    sys.path.insert(0, "/app")
+    os.chdir("/app")
+
+    import numpy as np
+    import pandas as pd
+    import torch
+    from PIL import Image, ImageFilter
+
+    from src import embeddings, spectral
+
+    device = "cuda"
+    print(f"[m12-rob] torch {torch.__version__} | cuda={torch.cuda.is_available()}")
+
+    # Load frozen probes
+    import joblib
+    m1_probe = joblib.load("/app/models/m1a_clip_linear.joblib")
+    m2_probe = joblib.load("/app/models/m2_spectral.joblib")
+
+    # Load CLIP model
+    print("[m12-rob] loading CLIP model...")
+    clip_model, clip_preprocess, _ = embeddings.load_clip(device=device)
+    print(f"[m12-rob] CLIP loaded on {device}")
+
+    # Load eval split
+    df = pd.read_csv("/data/manifests/manifest.csv")
+    eval_df = df[df["split"] == "eval"].reset_index(drop=True)
+    print(f"[m12-rob] eval split: {len(eval_df)} images")
+
+    rng = np.random.default_rng(1337)
+    os.makedirs("/data/cache/robustness", exist_ok=True)
+
+    def apply_perturbation(img: Image.Image, tag: str) -> Image.Image:
+        if tag.startswith("jpeg_q"):
+            quality = int(tag.split("q")[1])
+            buf = io.BytesIO()
+            img.save(buf, format="JPEG", quality=quality)
+            buf.seek(0)
+            return Image.open(buf).convert("RGB")
+        if tag.startswith("blur_s"):
+            sigma = int(tag.removeprefix("blur_s")) / 10.0
+            return img.filter(ImageFilter.GaussianBlur(radius=sigma))
+        if tag.startswith("noise_s"):
+            sigma = int(tag.removeprefix("noise_s"))
+            arr = np.asarray(img, dtype=np.float32)
+            noisy = arr + rng.normal(0, sigma, arr.shape).astype(np.float32)
+            return Image.fromarray(np.clip(noisy, 0, 255).astype(np.uint8), "RGB")
+        if tag == "resize_128":
+            small = img.resize((128, 128), Image.BICUBIC)
+            return small.resize((256, 256), Image.BICUBIC)
+        if tag == "social_media":
+            buf = io.BytesIO()
+            img.save(buf, format="JPEG", quality=75)
+            buf.seek(0)
+            jpg = Image.open(buf).convert("RGB")
+            small = jpg.resize((128, 128), Image.BICUBIC)
+            return small.resize((256, 256), Image.BICUBIC)
+        raise ValueError(f"Unknown perturbation tag: {tag}")
+
+    status = {}
+    for tag in tags:
+        out_path = f"/data/cache/robustness/m12_{tag}.parquet"
+        if os.path.exists(out_path):
+            print(f"[m12-rob] {tag}: already done, skipping")
+            status[tag] = True
+            continue
+
+        t0 = time.time()
+        print(f"\n[m12-rob] === {tag} ===")
+
+        # Apply perturbations, save to temp dir for spectral (needs file paths)
+        tmp_dir = f"/tmp/robustness_{tag}"
+        os.makedirs(tmp_dir, exist_ok=True)
+        perturbed_paths = []
+
+        for _, row in eval_df.iterrows():
+            src_path = "/data/" + row["path"].removeprefix("data/")
+            dst_path = os.path.join(tmp_dir, f"{row['image_id']}.jpg")
+            if not os.path.exists(dst_path):
+                img = Image.open(src_path).convert("RGB")
+                perturbed = apply_perturbation(img, tag)
+                perturbed.save(dst_path, format="JPEG", quality=95)
+            perturbed_paths.append(dst_path)
+
+        print(f"  perturbed {len(perturbed_paths)} images ({time.time() - t0:.1f}s)")
+
+        # M1: CLIP embeddings -> probe
+        from pathlib import Path
+        t1 = time.time()
+        path_objs = [Path(p) for p in perturbed_paths]
+        X_clip = embeddings.embed_paths(path_objs, clip_model, clip_preprocess, device, batch_size=batch_size)
+        logit1 = m1_probe.decision_function(X_clip)
+        p1 = m1_probe.predict_proba(X_clip)[:, 1]
+        print(f"  M1 extracted ({time.time() - t1:.1f}s)")
+
+        # M2: Spectral features -> probe
+        t2 = time.time()
+        feats = [spectral.features_from_image(Path(p)) for p in perturbed_paths]
+        X_spec = np.stack(feats).astype(np.float32)
+        logit2 = m2_probe.decision_function(X_spec)
+        p2 = m2_probe.predict_proba(X_spec)[:, 1]
+        print(f"  M2 extracted ({time.time() - t2:.1f}s)")
+
+        # Save per-tag parquet to volume
+        result = pd.DataFrame({
+            "image_id": eval_df["image_id"].astype(str).values,
+            "label": eval_df["label"].values,
+            "generator_name": eval_df["generator_name"].values,
+            "source_dataset": eval_df["source_dataset"].values,
+            "p1": p1, "logit1": logit1,
+            "p2": p2, "logit2": logit2,
+        })
+        result.to_parquet(out_path, index=False)
+        vol.commit()
+        print(f"  saved -> {out_path} ({time.time() - t0:.1f}s total)")
+
+        # Cleanup temp
+        import shutil
+        shutil.rmtree(tmp_dir, ignore_errors=True)
+        status[tag] = True
+
+    print(f"\n[m12-rob] DONE — {sum(status.values())}/{len(tags)} tags completed")
+    return status
+
+
+@app.local_entrypoint()
+def robustness_m12_main(tags: str = ""):
+    """Run M1+M2 robustness eval on Modal, download parquets locally.
+
+    Usage:
+      ./.venv/bin/modal run modal_app.py::robustness_m12_main
+      ./.venv/bin/modal run modal_app.py::robustness_m12_main --tags jpeg_q75,blur_s10
+    """
+    import subprocess
+    import sys
+    from pathlib import Path
+
+    root = Path(__file__).resolve().parent
+    sys.path.insert(0, str(root))
+    from src import config
+
+    tag_list = [t.strip() for t in tags.split(",") if t.strip()] if tags else ROBUSTNESS_TAGS
+    for t in tag_list:
+        if t not in ROBUSTNESS_TAGS:
+            print(f"[m12-rob-local] ERROR: unknown tag '{t}'. Valid: {ROBUSTNESS_TAGS}")
+            return
+
+    print(f"[m12-rob-local] launching M1+M2 robustness for {len(tag_list)} tags on Modal...")
+    status = run_m12_robustness.remote(tags=tag_list)
+
+    # Download parquets from volume
+    out_dir = config.CACHE_DIR / "robustness"
+    out_dir.mkdir(parents=True, exist_ok=True)
+
+    for tag in tag_list:
+        if not status.get(tag):
+            print(f"[m12-rob-local] {tag}: FAILED on Modal")
+            continue
+        remote = f"m12_{tag}.parquet"
+        local_path = out_dir / remote
+        subprocess.run([
+            "modal", "volume", "get", "aigi-data",
+            f"cache/robustness/{remote}", str(local_path),
+            "--force",
+        ], check=True)
+        print(f"[m12-rob-local] {tag}: downloaded -> {local_path}")
+
+    print(f"\n[m12-rob-local] M1+M2 robustness complete.")
+    print(f"  Next: run D3QE robustness, then `python scripts/robustness_score.py`")
+
+
+@app.function(image=image, gpu="A10G", volumes={"/data": vol}, timeout=7200)
+def run_m3_robustness(tags: list[str], batch_size: int = 64) -> dict[str, dict[str, float]]:
+    """D3QE inference on perturbed eval images. Applies perturbations in-container,
+    runs D3QE, saves per-tag npz to /data/cache/robustness/m3_<tag>.npz."""
+    import io
+    import os
+    import sys
+    import time
+
+    import certifi
+    os.environ.setdefault("SSL_CERT_FILE", certifi.where())
+
+    import numpy as np
+    import pandas as pd
+    import torch
+    import torchvision.transforms as T
+    from PIL import Image, ImageFilter
+
+    sys.path.insert(0, "/d3qe")
+    from networks.D3QE import D3QE
+
+    device = "cuda"
+    print(f"[m3-rob] torch {torch.__version__} | cuda={torch.cuda.is_available()}")
+
+    # Load D3QE model
+    model = D3QE(vqvae_path="/d3qe/pretrained/vq_ds16_c2i.pt")
+    state = torch.load("/d3qe/pretrained/model_epoch_best.pth", map_location="cpu")
+    sd = state["model"] if isinstance(state, dict) and "model" in state else state
+    info = model.load_state_dict(sd, strict=False)
+    missing_nb = [k for k in info.missing_keys
+                  if not (k.startswith("vq_model") or k.startswith("clip_model"))]
+    assert not missing_nb, f"missing non-backbone keys: {missing_nb[:10]}"
+    assert not info.unexpected_keys, f"unexpected keys: {list(info.unexpected_keys)[:10]}"
+    model = model.to(device).eval()
+    print("[m3-rob] D3QE model loaded.")
+
+    # Load eval split
+    df = pd.read_csv("/data/manifests/manifest.csv")
+    eval_df = df[df["split"] == "eval"].reset_index(drop=True)
+    print(f"[m3-rob] eval split: {len(eval_df)} images")
+
+    to_tensor = T.Compose([T.Resize((256, 256)), T.ToTensor()])
+    rng = np.random.default_rng(1337)
+    os.makedirs("/data/cache/robustness", exist_ok=True)
+
+    def apply_perturbation(img: Image.Image, tag: str) -> Image.Image:
+        """Apply perturbation to a PIL RGB image."""
+        if tag.startswith("jpeg_q"):
+            quality = int(tag.split("q")[1])
+            buf = io.BytesIO()
+            img.save(buf, format="JPEG", quality=quality)
+            buf.seek(0)
+            return Image.open(buf).convert("RGB")
+        if tag.startswith("blur_s"):
+            sigma = int(tag.removeprefix("blur_s")) / 10.0
+            return img.filter(ImageFilter.GaussianBlur(radius=sigma))
+        if tag.startswith("noise_s"):
+            sigma = int(tag.removeprefix("noise_s"))
+            arr = np.asarray(img, dtype=np.float32)
+            noisy = arr + rng.normal(0, sigma, arr.shape).astype(np.float32)
+            return Image.fromarray(np.clip(noisy, 0, 255).astype(np.uint8), "RGB")
+        if tag == "resize_128":
+            small = img.resize((128, 128), Image.BICUBIC)
+            return small.resize((256, 256), Image.BICUBIC)
+        if tag == "social_media":
+            buf = io.BytesIO()
+            img.save(buf, format="JPEG", quality=75)
+            buf.seek(0)
+            jpg = Image.open(buf).convert("RGB")
+            small = jpg.resize((128, 128), Image.BICUBIC)
+            return small.resize((256, 256), Image.BICUBIC)
+        raise ValueError(f"Unknown perturbation tag: {tag}")
+
+    all_logits = {}  # tag -> {image_id -> logit}
+    for tag in tags:
+        out_path = f"/data/cache/robustness/m3_{tag}.npz"
+        if os.path.exists(out_path):
+            print(f"[m3-rob] {tag}: already cached, loading")
+            data = np.load(out_path, allow_pickle=False)
+            all_logits[tag] = {str(i): float(data["logit"][k])
+                               for k, i in enumerate(data["image_id"])}
+            continue
+
+        t0 = time.time()
+        print(f"\n[m3-rob] === {tag} ===")
+
+        ids = eval_df["image_id"].astype(str).tolist()
+        paths = ["/data/" + p.removeprefix("data/") for p in eval_df["path"].tolist()]
+        logits = {}
+
+        for start in range(0, len(paths), batch_size):
+            chunk_paths = paths[start:start + batch_size]
+            chunk_ids = ids[start:start + batch_size]
+
+            tensors = []
+            for p in chunk_paths:
+                img = Image.open(p).convert("RGB")
+                perturbed = apply_perturbation(img, tag)
+                tensors.append(to_tensor(perturbed))
+
+            batch = torch.stack(tensors).to(device)
+            with torch.no_grad():
+                lg = model(batch).float().cpu().numpy().reshape(-1)
+            for cid, v in zip(chunk_ids, lg):
+                logits[cid] = float(v)
+
+            n = start + len(chunk_paths)
+            rate = n / max(time.time() - t0, 1e-6)
+            print(f"[m3-rob] {tag}: {n}/{len(paths)} ({rate:.1f} img/s)", flush=True)
+
+        # Save per-tag npz to volume
+        np.savez(out_path,
+                 image_id=np.array(list(logits.keys()), dtype=np.str_),
+                 logit=np.array([logits[i] for i in logits], dtype=np.float32))
+        vol.commit()
+        print(f"[m3-rob] {tag}: saved {len(logits)} logits ({(time.time()-t0)/60:.1f}m)")
+        all_logits[tag] = logits
+
+    print(f"\n[m3-rob] DONE — {len(all_logits)}/{len(tags)} tags completed")
+    return all_logits
+
+
+@app.local_entrypoint()
+def robustness_m3_main(tags: str = ""):
+    """Download D3QE robustness logits from Modal volume to local cache.
+
+    Usage:
+      ./.venv/bin/modal run modal_app.py::robustness_m3_main
+      ./.venv/bin/modal run modal_app.py::robustness_m3_main --tags jpeg_q75,blur_s10
+    """
+    import sys
+    from pathlib import Path
+
+    root = Path(__file__).resolve().parent
+    sys.path.insert(0, str(root))
+    import numpy as np
+    from src import config
+
+    tag_list = [t.strip() for t in tags.split(",") if t.strip()] if tags else ROBUSTNESS_TAGS
+    for t in tag_list:
+        if t not in ROBUSTNESS_TAGS:
+            print(f"[m3-rob-local] ERROR: unknown tag '{t}'. Valid: {ROBUSTNESS_TAGS}")
+            return
+
+    print(f"[m3-rob-local] launching D3QE robustness for {len(tag_list)} tags on Modal...")
+    all_logits = run_m3_robustness.remote(tags=tag_list)
+
+    # Save per-tag npz files locally
+    out_dir = config.CACHE_DIR / "robustness"
+    out_dir.mkdir(parents=True, exist_ok=True)
+
+    for tag, logits in all_logits.items():
+        local_path = out_dir / f"m3_{tag}.npz"
+        ids = np.array(list(logits.keys()), dtype=np.str_)
+        lg = np.array([logits[i] for i in logits], dtype=np.float32)
+        np.savez(local_path, image_id=ids, logit=lg)
+        print(f"[m3-rob-local] {tag}: saved {len(logits)} logits -> {local_path}")
+
+    print(f"\n[m3-rob-local] D3QE robustness complete ({len(all_logits)} tags).")
+    print(f"  Next: run `python scripts/robustness_score.py`")
+
+
 if __name__ == "__main__":
     print("Run with:  ./.venv/bin/modal run modal_app.py")
