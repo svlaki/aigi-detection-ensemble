@@ -1,7 +1,7 @@
-# AIGI Detection Ensemble (CS231n final)
+# AIGI Detection Ensemble
 
 Learned combiner over decorrelated AI-generated-image detectors + a LoRA
-finetune on modern generators, evaluated honestly on OOD data.
+finetune on modern generators, evaluated honestly on OOD data. Web demo: https://aigi-detection-9mju1vj8y-ashley-xus-projects.vercel.app/
 
 See `AIGI_ensemble_build_spec.md` for the full phase-by-phase plan and
 `AI_USAGE.md` for the AI-assistance log.
