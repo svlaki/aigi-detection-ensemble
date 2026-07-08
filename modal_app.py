@@ -39,7 +39,7 @@ if _d3qe_available:
                    .add_local_dir("external/D3QE/pretrained", "/d3qe/pretrained", copy=True))
 image = _d3qe_image
 
-vol = modal.Volume.from_name("cs231n-data")
+vol = modal.Volume.from_name("aigi-data")
 
 
 CACHE_REMOTE = "/data/cache/m3_d3qe_logit.npz"
@@ -470,12 +470,15 @@ def lora_sweep(limit: int = 0, batch_size: int = 32):
 # Runs UnivFD's OWN code + OFFICIAL fc_weights.pth on their OFFICIAL diffusion
 # test set (gdown), reproducing their per-generator AP. Our M1 IS this method, so
 # matching their published table validates our pipeline against the literature.
-univfd_image = (
-    modal.Image.debian_slim(python_version="3.11")
-    .pip_install("torch", "torchvision", "ftfy", "regex", "tqdm", "scikit-learn",
-                 "numpy", "pillow", "scipy", "gdown", "certifi", "setuptools")
-    .add_local_dir("external/UniversalFakeDetect", "/univfd", copy=True)
+_univfd_base = _os.path.join(_os.path.dirname(__file__), "external", "UniversalFakeDetect")
+_univfd_available = _os.path.isdir(_univfd_base)
+
+univfd_image = modal.Image.debian_slim(python_version="3.11").pip_install(
+    "torch", "torchvision", "ftfy", "regex", "tqdm", "scikit-learn",
+    "numpy", "pillow", "scipy", "gdown", "certifi", "setuptools",
 )
+if _univfd_available:
+    univfd_image = univfd_image.add_local_dir("external/UniversalFakeDetect", "/univfd", copy=True)
 
 # UnivFD diffusion test set (1k real + 1k fake per domain): Google Drive file id
 UNIVFD_DIFFUSION_GDRIVE_ID = "1FXlGIRh_Ud3cScMgSVDbEWmPDmjcrm1t"
@@ -604,6 +607,124 @@ def univfd_main(gdrive_id: str = UNIVFD_DIFFUSION_GDRIVE_ID):
     (root / "results").mkdir(exist_ok=True)
     (root / "results" / "univfd_reproduction.json").write_text(json.dumps(res, indent=2))
     print(f"[univfd-local] saved -> results/univfd_reproduction.json ({len(res)} entries)")
+
+
+# ===========================================================================
+# CLIP embedding extraction — offload the heavy ViT-L/14 work to A10G
+# ===========================================================================
+clip_image = (
+    modal.Image.debian_slim(python_version="3.11")
+    .pip_install(
+        "torch", "torchvision", "open_clip_torch", "numpy", "pandas",
+        "pillow", "ftfy", "regex", "certifi", "setuptools",
+    )
+)
+
+CLIP_CACHE_REMOTE = "/data/cache/clip_ViT-L-14-quickgelu_emb.npz"
+CLIP_MODEL = "ViT-L-14-quickgelu"
+CLIP_PRETRAINED = "openai"
+CLIP_EMBED_DIM = 768
+
+
+@app.function(image=clip_image, gpu="A10G", volumes={"/data": vol}, timeout=7200)
+def run_clip(batch_size: int = 128, limit: int = 0, checkpoint: int = 2000) -> dict:
+    """CLIP ViT-L/14 embedding extraction over the manifest. Resumable."""
+    import os
+    import time
+
+    import certifi
+    os.environ.setdefault("SSL_CERT_FILE", certifi.where())
+
+    import numpy as np
+    import pandas as pd
+    import torch
+    import open_clip
+    from PIL import Image
+
+    device = "cuda"
+    print(f"[clip-modal] torch {torch.__version__} | cuda={torch.cuda.is_available()}")
+
+    model, _, preprocess = open_clip.create_model_and_transforms(
+        CLIP_MODEL, pretrained=CLIP_PRETRAINED)
+    model = model.to(device).eval()
+    for p in model.parameters():
+        p.requires_grad_(False)
+    torch.set_grad_enabled(False)
+    print("[clip-modal] model loaded.")
+
+    df = pd.read_csv("/data/manifests/manifest.csv")
+    if limit:
+        df = df.head(limit)
+
+    # load existing cache
+    cache = {}
+    if os.path.exists(CLIP_CACHE_REMOTE):
+        data = np.load(CLIP_CACHE_REMOTE, allow_pickle=False)
+        cache = {str(i): data["emb"][k] for k, i in enumerate(data["image_id"])}
+    print(f"[clip-modal] resume: {len(cache)} already cached on volume")
+
+    todo = df[~df["image_id"].astype(str).isin(cache.keys())].reset_index(drop=True)
+    ids = [str(x) for x in todo["image_id"].tolist()]
+    paths = ["/data/" + p.removeprefix("data/") for p in todo["path"].tolist()]
+    print(f"[clip-modal] images: total={len(df)} pending={len(paths)} | batch={batch_size}")
+
+    if not paths:
+        print("[clip-modal] nothing to do — cache is complete.")
+        return {k: v.tolist() for k, v in cache.items()}
+
+    def save_remote():
+        os.makedirs("/data/cache", exist_ok=True)
+        all_ids = np.array(list(cache.keys()), dtype=np.str_)
+        all_emb = np.stack([cache[i] for i in cache]).astype(np.float32)
+        tmp = CLIP_CACHE_REMOTE + ".tmp.npz"
+        np.savez(tmp, image_id=all_ids, emb=all_emb)
+        os.replace(tmp, CLIP_CACHE_REMOTE)
+        vol.commit()
+
+    since_ckpt = 0
+    t0 = time.time()
+    for start in range(0, len(paths), batch_size):
+        chunk_paths = paths[start:start + batch_size]
+        chunk_ids = ids[start:start + batch_size]
+        batch = torch.stack([
+            preprocess(Image.open(p).convert("RGB")) for p in chunk_paths
+        ]).to(device)
+        with torch.no_grad():
+            emb = model.encode_image(batch).float().cpu().numpy()
+        for k, cid in enumerate(chunk_ids):
+            cache[cid] = emb[k]
+        since_ckpt += len(chunk_paths)
+        n = start + len(chunk_paths)
+        rate = n / max(time.time() - t0, 1e-6)
+        print(f"[clip-modal] {n}/{len(paths)} ({rate:.1f} img/s, "
+              f"eta {(len(paths)-n)/max(rate,1e-6)/60:.1f}m)", flush=True)
+        if since_ckpt >= checkpoint:
+            save_remote()
+            print(f"[clip-modal]   ✓ checkpoint to volume ({len(cache)} total)", flush=True)
+            since_ckpt = 0
+
+    save_remote()
+    print(f"[clip-modal] DONE — {len(cache)} embeddings in {(time.time()-t0)/60:.1f}m")
+    return {k: v.tolist() for k, v in cache.items()}
+
+
+@app.local_entrypoint()
+def clip_main(batch_size: int = 128, limit: int = 0):
+    import sys
+    from pathlib import Path
+
+    result = run_clip.remote(batch_size=batch_size, limit=limit)
+
+    sys.path.insert(0, str(Path(__file__).resolve().parent))
+    import numpy as np
+    from src import config
+
+    config.CACHE_DIR.mkdir(parents=True, exist_ok=True)
+    ids = np.array(list(result.keys()), dtype=np.str_)
+    emb = np.array([result[i] for i in result], dtype=np.float32)
+    out_path = config.CACHE_DIR / "clip_ViT-L-14-quickgelu_emb.npz"
+    np.savez(out_path, image_id=ids, emb=emb)
+    print(f"[clip-local] saved {len(result)} embeddings -> {out_path}")
 
 
 if __name__ == "__main__":
