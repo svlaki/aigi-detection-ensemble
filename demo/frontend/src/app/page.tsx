@@ -13,6 +13,8 @@ import { LoraAblationChart } from "@/components/results/LoraAblationChart";
 import { LoraSweepChart } from "@/components/results/LoraSweepChart";
 import { NegativeControlsPanel } from "@/components/results/NegativeControlsPanel";
 import { UnivFDReproductionChart } from "@/components/results/UnivFDReproductionChart";
+import { RobustnessLineChart } from "@/components/results/RobustnessChart";
+import { RobustnessHeatmap } from "@/components/results/RobustnessHeatmap";
 import {
   ERROR_CORR_MATRIX,
   LOGIT_CORR_MATRIX,
@@ -230,6 +232,21 @@ export default function Home() {
           highColor="#22c55e"
           showDiagonal
         />
+      </SectionWrapper>
+
+      {/* Robustness */}
+      <SectionWrapper
+        id="robustness"
+        title="Robustness Under Perturbation"
+        description="AUROC across 14 image perturbations (JPEG, blur, noise, resize, social media pipeline). M3 D3QE is the most stable; M1 CLIP degrades most under compression and noise."
+      >
+        <RobustnessLineChart />
+        <RobustnessHeatmap />
+        <p className="text-xs text-zinc-500">
+          Social media pipeline (resize + JPEG + blur) is the worst case for M1 (−0.138 AUROC),
+          while M3 stays within ±0.05 for most perturbations. Mild blur actually improves several methods
+          by introducing the frequency artifacts M2 looks for.
+        </p>
       </SectionWrapper>
 
       {/* LoRA */}

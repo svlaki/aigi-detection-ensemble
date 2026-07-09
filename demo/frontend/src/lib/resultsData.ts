@@ -170,3 +170,85 @@ export const UNIVFD_MEAN_AP = {
   published: 95.0,
   reproduced: 95.66,
 } as const;
+
+// --- Robustness evaluation (robustness_summary.json) ---
+
+export const ROBUSTNESS_PERTURBATIONS = [
+  "clean",
+  "jpeg_q90",
+  "jpeg_q75",
+  "jpeg_q50",
+  "jpeg_q30",
+  "blur_s05",
+  "blur_s10",
+  "blur_s20",
+  "blur_s30",
+  "noise_s2",
+  "noise_s5",
+  "noise_s10",
+  "noise_s20",
+  "resize_128",
+  "social_media",
+] as const;
+
+export const ROBUSTNESS_PERTURBATION_LABELS: Record<string, string> = {
+  clean: "Clean",
+  jpeg_q90: "JPEG q90",
+  jpeg_q75: "JPEG q75",
+  jpeg_q50: "JPEG q50",
+  jpeg_q30: "JPEG q30",
+  blur_s05: "Blur σ=0.5",
+  blur_s10: "Blur σ=1.0",
+  blur_s20: "Blur σ=2.0",
+  blur_s30: "Blur σ=3.0",
+  noise_s2: "Noise σ=2",
+  noise_s5: "Noise σ=5",
+  noise_s10: "Noise σ=10",
+  noise_s20: "Noise σ=20",
+  resize_128: "Resize 128",
+  social_media: "Social Media",
+};
+
+export interface RobustnessRow {
+  readonly perturbation: string;
+  readonly label: string;
+  readonly M1_cal: number;
+  readonly M2_cal: number;
+  readonly M3_cal: number;
+  readonly combiner_logreg: number;
+  readonly mean_prob: number;
+}
+
+export const ROBUSTNESS_DATA: readonly RobustnessRow[] = [
+  { perturbation: "clean", label: "Clean", M1_cal: 0.7574, M2_cal: 0.4877, M3_cal: 0.6421, combiner_logreg: 0.7238, mean_prob: 0.738 },
+  { perturbation: "jpeg_q90", label: "JPEG q90", M1_cal: 0.6396, M2_cal: 0.4926, M3_cal: 0.6503, combiner_logreg: 0.6565, mean_prob: 0.6876 },
+  { perturbation: "jpeg_q75", label: "JPEG q75", M1_cal: 0.637, M2_cal: 0.4983, M3_cal: 0.6409, combiner_logreg: 0.6452, mean_prob: 0.6714 },
+  { perturbation: "jpeg_q50", label: "JPEG q50", M1_cal: 0.6391, M2_cal: 0.4939, M3_cal: 0.6599, combiner_logreg: 0.6534, mean_prob: 0.68 },
+  { perturbation: "jpeg_q30", label: "JPEG q30", M1_cal: 0.6257, M2_cal: 0.4679, M3_cal: 0.6382, combiner_logreg: 0.627, mean_prob: 0.6535 },
+  { perturbation: "blur_s05", label: "Blur σ=0.5", M1_cal: 0.7564, M2_cal: 0.5785, M3_cal: 0.671, combiner_logreg: 0.7506, mean_prob: 0.764 },
+  { perturbation: "blur_s10", label: "Blur σ=1.0", M1_cal: 0.7495, M2_cal: 0.6152, M3_cal: 0.6938, combiner_logreg: 0.7675, mean_prob: 0.7599 },
+  { perturbation: "blur_s20", label: "Blur σ=2.0", M1_cal: 0.6563, M2_cal: 0.511, M3_cal: 0.6646, combiner_logreg: 0.6937, mean_prob: 0.6906 },
+  { perturbation: "blur_s30", label: "Blur σ=3.0", M1_cal: 0.6227, M2_cal: 0.4387, M3_cal: 0.631, combiner_logreg: 0.6493, mean_prob: 0.6469 },
+  { perturbation: "noise_s2", label: "Noise σ=2", M1_cal: 0.6916, M2_cal: 0.4829, M3_cal: 0.6459, combiner_logreg: 0.6764, mean_prob: 0.7016 },
+  { perturbation: "noise_s5", label: "Noise σ=5", M1_cal: 0.6201, M2_cal: 0.5893, M3_cal: 0.6172, combiner_logreg: 0.6347, mean_prob: 0.6655 },
+  { perturbation: "noise_s10", label: "Noise σ=10", M1_cal: 0.687, M2_cal: 0.5954, M3_cal: 0.6134, combiner_logreg: 0.6624, mean_prob: 0.6973 },
+  { perturbation: "noise_s20", label: "Noise σ=20", M1_cal: 0.6616, M2_cal: 0.5254, M3_cal: 0.5894, combiner_logreg: 0.6409, mean_prob: 0.6654 },
+  { perturbation: "resize_128", label: "Resize 128", M1_cal: 0.7375, M2_cal: 0.6229, M3_cal: 0.6285, combiner_logreg: 0.7389, mean_prob: 0.7136 },
+  { perturbation: "social_media", label: "Social Media", M1_cal: 0.6194, M2_cal: 0.62, M3_cal: 0.6322, combiner_logreg: 0.6596, mean_prob: 0.6718 },
+] as const;
+
+export const ROBUSTNESS_HEATMAP_METHODS = [
+  "M1_cal",
+  "M2_cal",
+  "M3_cal",
+  "combiner_logreg",
+  "mean_prob",
+] as const;
+
+export const ROBUSTNESS_METHOD_LABELS: Record<string, string> = {
+  M1_cal: "M1 CLIP",
+  M2_cal: "M2 Spectral",
+  M3_cal: "M3 D3QE",
+  combiner_logreg: "Combiner LR",
+  mean_prob: "Mean Prob",
+};
