@@ -12,7 +12,7 @@ export function usePrediction() {
   const [error, setError] = useState<string | null>(null);
   const abortRef = useRef<AbortController | null>(null);
 
-  const run = useCallback(async (file: File, mode: "fast" | "full") => {
+  const run = useCallback(async (file: File) => {
     abortRef.current?.abort();
     const controller = new AbortController();
     abortRef.current = controller;
@@ -22,7 +22,7 @@ export function usePrediction() {
     setError(null);
 
     try {
-      const response = await predict(file, mode, controller.signal);
+      const response = await predict(file, controller.signal);
       if (!controller.signal.aborted) {
         setResult(response);
         setStatus("success");

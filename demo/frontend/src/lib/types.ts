@@ -15,14 +15,9 @@ export interface EnsembleResult {
 export interface PredictionResponse {
   readonly verdict: string;
   readonly confidence: number;
-  readonly mode: "fast" | "full";
+  readonly mode: string;
   readonly members: readonly MemberResult[];
   readonly ensemble_methods: readonly EnsembleResult[];
   readonly processing_time_ms: number;
 }
 
-export interface HealthResponse {
-  readonly status: string;
-  readonly d3qe_available: boolean;
-  readonly device: string;
-}

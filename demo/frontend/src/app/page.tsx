@@ -1,11 +1,9 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useState } from "react";
 import { ImageUploader } from "@/components/ImageUploader";
-import { ModeSelector } from "@/components/ModeSelector";
 import { ResultsPanel } from "@/components/ResultsPanel";
 import { usePrediction } from "@/hooks/usePrediction";
-import { fetchHealth } from "@/lib/api";
 import { SectionWrapper } from "@/components/results/SectionWrapper";
 import { StatCard } from "@/components/results/StatCard";
 import { CorrelationHeatmap } from "@/components/results/CorrelationHeatmap";
@@ -24,16 +22,8 @@ import {
 } from "@/lib/resultsData";
 
 export default function Home() {
-  const [mode, setMode] = useState<"fast" | "full">("fast");
   const [file, setFile] = useState<File | null>(null);
-  const [d3qeAvailable, setD3qeAvailable] = useState(false);
   const { status, result, error, run, reset } = usePrediction();
-
-  useEffect(() => {
-    fetchHealth()
-      .then((h) => setD3qeAvailable(h.d3qe_available))
-      .catch(() => setD3qeAvailable(false));
-  }, []);
 
   const handleFileSelected = useCallback(
     (f: File) => {
@@ -44,8 +34,8 @@ export default function Home() {
   );
 
   const handleAnalyze = useCallback(() => {
-    if (file) run(file, mode);
-  }, [file, mode, run]);
+    if (file) run(file);
+  }, [file, run]);
 
   return (
     <main className="mx-auto flex w-full max-w-5xl flex-1 flex-col gap-8 px-4 py-12">
@@ -66,13 +56,6 @@ export default function Home() {
         <div className="space-y-4">
           <ImageUploader
             onFileSelected={handleFileSelected}
-            disabled={status === "loading"}
-          />
-
-          <ModeSelector
-            mode={mode}
-            onModeChange={setMode}
-            d3qeAvailable={d3qeAvailable}
             disabled={status === "loading"}
           />
 
@@ -166,7 +149,7 @@ export default function Home() {
             </span>
             <p className="mt-1">
               VQ-VAE codebook residuals fused with CLIP detect autoregressive
-              generation artifacts. Available in Full mode.
+              generation artifacts.
             </p>
           </div>
         </div>

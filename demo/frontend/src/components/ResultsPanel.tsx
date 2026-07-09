@@ -9,8 +9,7 @@ interface ResultsPanelProps {
 
 export function ResultsPanel({ result }: ResultsPanelProps) {
   const isAI = result.verdict === "AI-Generated";
-  const primaryMethod =
-    result.mode === "full" ? "combiner_logreg" : "mean_prob";
+  const primaryMethod = "combiner_logreg";
 
   return (
     <div className="space-y-6 rounded-xl border border-zinc-800 bg-zinc-900/50 p-6">
@@ -41,10 +40,7 @@ export function ResultsPanel({ result }: ResultsPanelProps) {
 
       {/* Footer info */}
       <div className="flex items-center justify-between border-t border-zinc-800 pt-3 text-xs text-zinc-500">
-        <span>
-          Mode:{" "}
-          {result.mode === "full" ? "Full (3 members)" : "Fast (2 members)"}
-        </span>
+        <span>Full (3 members)</span>
         <span>{result.processing_time_ms.toFixed(0)} ms</span>
       </div>
     </div>
